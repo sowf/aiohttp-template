@@ -1,0 +1,12 @@
+from os import getenv
+
+HOST = '0.0.0.0'
+PORT = 80
+
+DB_CONFIG = {
+    'host': getenv('DB_HOST', '127.0.0.1'),
+    'database': getenv('DB_NAME', 'postgres'),
+    'user': getenv('DB_USER', 'postgres'),
+    'password': getenv('DB_PASSWORD'),
+    'max_connections': 5
+}

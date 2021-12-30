@@ -1,0 +1,17 @@
+click
+aiohttp
+aiojobs
+uuid
+peewee
+peewee-async
+peewee-migrate
+peewee-validates-updated
+psycopg2-binary
+aiopg
+pytest-asyncio
+pytest-aiohttp
+pytest-cov
+asynctest
+pytest
+coverage
+mock
