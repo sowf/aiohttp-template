@@ -1,0 +1,113 @@
+variables:
+  IMAGE_NAME: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}
+  CONTAINER_NAME: ${CI_PROJECT_NAME}
+  REGISTRY_URL: ${CI_REGISTRY}/public_repos/images/
+
+stages:
+  - build+test
+  - mark_latest
+  - deploy_1
+
+before_script:
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+
+branch_build+test:
+  variables:
+    IMAGE_NAME: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
+    POSTGRES_USER: postgres
+    POSTGRES_DB: postgres_db
+  stage: build+test
+  tags:
+    - build-docker
+  image: ${REGISTRY_URL}docker:latest
+  services:
+    - name: ${REGISTRY_URL}docker:dind
+      alias: docker
+    - name: ${REGISTRY_URL}postgres:alpine
+      alias: postgres
+  script:
+    - docker pull $CI_REGISTRY_IMAGE:latest || true
+    - docker build
+      --cache-from $CI_REGISTRY_IMAGE:latest
+      --tag $IMAGE_NAME .
+    - docker run
+      --name $CONTAINER_NAME
+      $IMAGE_NAME
+      test --coverage
+  except:
+    - develop
+    - tags
+
+tags_and_develop_build+test:
+  stage: build+test
+  tags:
+    - build-docker
+  image: ${REGISTRY_URL}docker:latest
+  services:
+    - name: ${REGISTRY_URL}docker:dind
+      alias: docker
+  script:
+    - docker pull $CI_REGISTRY_IMAGE:latest || true
+    - docker build
+      --cache-from $CI_REGISTRY_IMAGE:latest
+      --tag $IMAGE_NAME .
+    - docker run
+      --name $CONTAINER_NAME
+      $IMAGE_NAME
+      test --coverage
+    - docker push $IMAGE_NAME
+  only:
+    - develop
+    - tags
+
+mark_latest_tag:
+  stage: mark_latest
+  tags:
+    - build-docker
+  image: ${REGISTRY_URL}docker:latest
+  services:
+    - name: ${REGISTRY_URL}docker:dind
+      alias: docker
+  script:
+    - docker pull $IMAGE_NAME || true
+    - docker tag $IMAGE_NAME $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:latest
+  only:
+    - tags
+
+.deploy_script: &deploy_script_definition
+  script:
+    - docker pull $IMAGE_NAME
+    - docker stop ${CONTAINER_INST_NAME} || echo
+    - docker rm ${CONTAINER_INST_NAME} || echo
+    - docker run -d
+      -p 127.0.0.1:${DEPLOY_PORT}:80
+      --name ${CONTAINER_INST_NAME}
+      --network test_network
+      --restart unless-stopped
+      -e LOGGING_LEVEL=DEBUG
+      -e DB_HOST=$POSTGRES_HOST
+      -e DB_PASSWORD=$POSTGRES_PASSWORD
+      $IMAGE_NAME
+
+deploy_develop_1:
+  variables:
+    CONTAINER_INST_NAME: ${CI_PROJECT_NAME}
+    DEPLOY_PORT: 9999
+  stage: deploy_1
+  tags:
+    - core-test
+  <<: *deploy_script_definition
+  only:
+    - develop
+
+deploy_tags_1:
+  variables:
+    CONTAINER_INST_NAME: ${CI_PROJECT_NAME}
+    DEPLOY_PORT: 9999
+  stage: deploy_1
+  tags:
+    - core-production
+  <<: *deploy_script_definition
+  only:
+    - tags

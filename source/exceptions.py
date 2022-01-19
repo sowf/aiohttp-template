@@ -1,0 +1,2 @@
+class DBUpdateError(Exception):
+    pass

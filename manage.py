@@ -9,7 +9,7 @@ from peewee_migrate import Router
 
 from source.classes import WebApp
 from source import models
-from source.models import LiaChannelModel, TerminatedChatModel
+from source.models import BaseModel
 from source.routes import routes
 
 
@@ -26,7 +26,7 @@ def run():
     database = PooledPostgresqlDatabase(**settings.DB_CONFIG)
     database.bind([])
     database.set_allow_sync(False)
-    app = WebApp(routes=routes)
+    app = WebApp(database, routes)
     app.start(host=settings.HOST, port=settings.PORT)
 
 

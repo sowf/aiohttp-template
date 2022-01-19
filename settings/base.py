@@ -1,5 +1,6 @@
 from os import getenv
 
+
 LOGGING_LEVEL = getenv('LOGGING_LEVEL', 'INFO')
 LOGGING = {
     'version': 1,
