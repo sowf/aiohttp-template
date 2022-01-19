@@ -1,0 +1,40 @@
+version: "3.2"
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - /var/lib/rabbitmq/
+      - /var/log/rabbitmq/
+
+  some-tunnel:
+    build: ./tunnels
+    restart: always
+    volumes:
+      - $HOME/.ssh:/root/.ssh:ro
+    environment:
+      TUNNEL_HOST: some-tunnel
+      REMOTE_HOST: 82.257.257.257
+      REMOTE_IP: 192.168.0.89
+      REMOTE_USER: root
+      LOCAL_PORT: 8989
+      REMOTE_PORT: 8989
+    ports:
+      - 8989:8989
+
+  postgres:
+    image: postgres:13.3
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_pass
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+    external: true

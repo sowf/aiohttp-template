@@ -1,0 +1,54 @@
+version: "3.2"
+services:
+  aiohttp-server:
+    build: .
+    environment:
+      CELERY_BROKER: amqp://guest:guest@rabbitmq-analytics:5672/
+      DB_HOST: postgres
+      DB_PASSWORD: postgres_pass
+    ports:
+      - 9999:80
+    networks:
+      - backend
+    depends_on:
+      - celery-worker
+      - postgres
+      - rabbitmq-analytics
+
+  celery-worker:
+    build: .
+    environment:
+      SOME_HOST: http://192.168.0.89:8989
+      CELERY_BROKER: amqp://guest:guest@rabbitmq-analytics:5672/
+      DB_HOST: postgres
+      DB_PASSWORD: postgres_pass
+    networks:
+      - backend
+    entrypoint: ["celery", "-A", "source.celery.tasks", "worker"]
+    depends_on:
+      - postgres
+      - rabbitmq-analytics
+
+  rabbitmq-analytics:
+    image: rabbitmq:3-management-alpine
+    expose:
+      - '5672'
+      - '15672'
+    networks:
+      - backend
+
+  postgres:
+    image: postgres:13.3
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_pass
+      POSTGRES_DB: postgres_db
+    expose:
+      - '5432'
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+networks:
+  backend:
