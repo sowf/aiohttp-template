@@ -4,6 +4,9 @@ HOST = '0.0.0.0'
 PORT = 80
 
 
+CELERY_BROKER = os.getenv('CELERY_BROKER', 'amqp://guest:guest@localhost:5672/')
+
+
 DB_CONFIG = {
     'host': getenv('DB_HOST', '127.0.0.1'),
     'database': getenv('DB_NAME', 'postgres_db'),
